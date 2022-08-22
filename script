@@ -1,0 +1,96 @@
+#!/bin/bash
+# Copyright (C) 2019 Omar Castro <omar.castro.360@gmail.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#------------------------------------------------------------------------
+
+
+# The first parameter sets the step to change the volume by, and units to display
+# uses "step" env variable as fallback, which can be defined on the block configuration
+STEP="${1:-${step:-5}}"
+#------------------------------------------------------------------------
+
+unset LANG;
+
+
+clear_input_buffer(){
+  while read -t 0.02 line; do :; done
+}
+
+
+
+tick(){
+  local volume_info="$(wpctl get-volume @DEFAULT_SINK@)"
+  local active_sink_name="$(wpctl inspect @DEFAULT_SINK@ | grep node.name)"
+  local volume_info_arr=($volume_info)
+  local volume=`bc -q <<< "(${volume_info_arr[1]} * 100)/1"`
+
+  case "$active_sink_name" in
+    *head* )  OFFICON="";  ONICON=""  ;;
+    *hdmi* )  OFFICON="";  ONICON=""  ;;
+    * )       OFFICON="";  ONICON=""  ;;
+  esac  
+
+  if [[ "${volume_info_arr[2]}" == *"MUTE"* ]]; then
+    echo "$OFFICON MUTE"
+  else
+    [[ $volume == "0" ]] && echo "$OFFICON OFF" || echo "$ONICON $volume%"
+  fi
+}
+
+handle_change(){
+  clear_input_buffer
+  tick  
+  while read line ; do
+    clear_input_buffer
+    tick
+  done
+}
+
+# there is no reliable way to check for sink change
+# pw-mon does not show information about active default sink
+monitor_sink_change(){
+  local old_sink="$(wpctl inspect @DEFAULT_SINK@ | grep node.name)"
+  local new_sink=""
+  sleep 2
+  while read line ; do
+    # debounce 300 milliseconds
+    while read -t 0.3 line; do :; done
+    new_sink="$(wpctl inspect @DEFAULT_SINK@ | grep node.name)"
+    if [[ "$new_sink" != "$old_sink" ]]; then
+      old_sink="$new_sink"
+      tick
+    fi
+    clear_input_buffer
+  done
+}
+
+print_info(){
+  pw-mon | grep --line-buffered -e "sink" -e "^add" | tee >(grep --line-buffered "sink" | handle_change) >(monitor_sink_change) > /dev/null
+}
+
+handle_buttons(){
+  while read button; do
+    case "$button" in
+      1) ( cd "$( dirname "${BASH_SOURCE[0]}" )" > /dev/null 2>&1 && setsid ./mouse-left-click ) > /dev/null ;;
+      3) ( cd "$( dirname "${BASH_SOURCE[0]}" )" > /dev/null 2>&1 && setsid ./mouse-right-click ) > /dev/null ;;
+      4) ( cd "$( dirname "${BASH_SOURCE[0]}" )" > /dev/null 2>&1 && setsid ./mouse-wheel-up "$STEP" ) > /dev/null ;;
+      5) ( cd "$( dirname "${BASH_SOURCE[0]}" )" > /dev/null 2>&1 && setsid ./mouse-wheel-down "$STEP" ) > /dev/null;;
+    esac
+  done
+}
+
+print_info &
+handle_buttons

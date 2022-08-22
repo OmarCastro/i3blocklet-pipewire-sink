@@ -1,0 +1,45 @@
+#! /bin/sh
+# Copyright (C) 2019 Omar Castro <omar.castro.360@gmail.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#------------------------------------------------------------------------
+
+ROFI_OPTIONAL_ARGS=()
+if ! [[ -z "$rofi_theme" ]]; then
+  echo "a"
+	ROFI_OPTIONAL_ARGS+=( -theme "$rofi_theme" )
+fi
+if ! [[ -z "$rofi_window_anchor" ]]; then
+	ROFI_OPTIONAL_ARGS+=( -theme-str '#window {anchor:'"$rofi_window_anchor"';}' )
+fi
+
+
+
+# `pactl list sinks` shows sink properties with a mix of english language and local language
+# defined by LANG env var, so we unset the var to guarantee only the fallback language is used
+unset LANG;
+sink_list="$(wpctl status | sed -n '/^Audio/,/Sink endpoints:/p' | sed -n '/Sinks:/,/|\s*$/p' | head -n -2 | tail -n +2 | tr -d '│')"
+
+
+CONTENT="$sink_list"
+let "WIDTH = $(wc -L <<< "$CONTENT")"
+OPTION_SELECTED=$(echo "$CONTENT" \
+  | rofi -dmenu -m -3 -width -$WIDTH -lines 2 -markup-rows "${ROFI_OPTIONAL_ARGS[@]}"  \
+  | sed -e 's/[^0-9]*\([0-9]*\).*/\1/g')
+
+echo ""
+if ! [[ -z "$OPTION_SELECTED" ]]; then
+    wpctl set-default "$OPTION_SELECTED"
+fi 
