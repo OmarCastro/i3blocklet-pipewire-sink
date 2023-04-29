@@ -17,5 +17,5 @@
 #------------------------------------------------------------------------
 
 step="${1:-5}"
-wpctl set-volume @DEFAULT_SINK@ $step%+
-wpctl set-mute @DEFAULT_SINK@ 0
+wpctl set-volume @DEFAULT_AUDIO_SINK@ $step%+
+wpctl set-mute @DEFAULT_AUDIO_SINK@ 0

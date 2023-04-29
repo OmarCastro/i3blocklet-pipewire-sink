@@ -32,8 +32,8 @@ clear_input_buffer(){
 
 
 tick(){
-  local volume_info="$(wpctl get-volume @DEFAULT_SINK@)"
-  local active_sink_name="$(wpctl inspect @DEFAULT_SINK@ | grep node.name)"
+  local volume_info="$(wpctl get-volume @DEFAULT_AUDIO_SINK@)"
+  local active_sink_name="$(wpctl inspect @DEFAULT_AUDIO_SINK@ | grep node.name)"
   local volume_info_arr=($volume_info)
   local volume=`bc -q <<< "(${volume_info_arr[1]} * 100)/1"`
 
