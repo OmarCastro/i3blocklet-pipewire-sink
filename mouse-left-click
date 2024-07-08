@@ -30,7 +30,7 @@ fi
 # `pactl list sinks` shows sink properties with a mix of english language and local language
 # defined by LANG env var, so we unset the var to guarantee only the fallback language is used
 unset LANG;
-sink_list="$(wpctl status | sed -n '/^Audio/,/Sink endpoints:/p' | sed -n '/Sinks:/,/|\s*$/p' | head -n -2 | tail -n +2 | tr -d '│')"
+sink_list="$(wpctl status | sed -n '/^Audio/,/^\s*$/p' | sed -n '/Sinks:/,/│\s*$/p' | head -n -2 | tail -n +2 | tr -d '│')"
 
 
 CONTENT="$sink_list"
